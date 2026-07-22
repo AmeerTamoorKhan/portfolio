@@ -443,8 +443,13 @@
     const now=performance.now();
     if(now-lastStep<THROTTLE) return;
     lastStep=now;
+    step(dir*STEP);
+  }
+  // advance progress by an explicit magnitude (used by touch, which is distance-driven)
+  function step(delta){
+    const dir=Math.sign(delta);
     if(mode==='intro'){
-      vp=clamp(vp + dir*STEP); tgtP=vp;
+      vp=clamp(vp + delta); tgtP=vp;
       // release happens in the loop once vp is 100% AND the walk has settled
     } else if(window.scrollY<=0 && dir<0){
       // re-enter the pinned experience to reverse; step just below 100% so the loop
@@ -455,10 +460,13 @@
   window.addEventListener('wheel', e=>{ if(mode==='intro') e.preventDefault(); if(e.deltaY) feed(Math.sign(e.deltaY)); }, {passive:false});
   let ty=0;
   window.addEventListener('touchstart', e=>{ ty=e.touches[0].clientY; }, {passive:true});
+  // Touch advances PROPORTIONALLY to how far the finger travels — a full swipe covers real
+  // progress instead of the old one-fixed-step-per-event throttle (which crawled at ~2%/swipe
+  // on a slow drag). ~360px of drag ≈ full 0→1 sweep.
   window.addEventListener('touchmove', e=>{
     const y=e.touches[0].clientY, dy=ty-y;
     if(mode==='intro') e.preventDefault();
-    if(Math.abs(dy)>5){ feed(Math.sign(dy)); ty=y; }
+    if(Math.abs(dy)>=1){ step(dy/360); ty=y; }
   }, {passive:false});
   window.addEventListener('resize', ()=>{ frame(); });
 
