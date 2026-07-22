@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ameer Tamoor Khan — Jack of All Trade</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
+    "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js",
+    "three/addons/exporters/OBJExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js",
+    "three/addons/exporters/GLTFExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js",
+    "three/addons/loaders/GLTFLoader.js": "https://unpkg.com/three@0.184.0/examples/jsm/loaders/GLTFLoader.js"
+  },
+  "integrity": {
+    "https://unpkg.com/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
+    "https://unpkg.com/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
+    "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9",
+    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js": "sha384-nbwtoZENJD3Vq+ACK0CuGQdPMuDWHkamC2KJD70EV5nfg6jQjfppKOea07YJN+N3",
+    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js": "sha384-VofkvpG6HERhFCYbsUOHeNXBCqID2nfqkQqnVzE1jc/oPcz+qJ13ADdXH08hE+cQ"
+  }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Space+Mono:wght@700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#f3ead9; --ink:#2b2721; --navy:#1e3a6b; --accent:#b06a2c; --muted:#8a7c68; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+  three-d-stage:not(:defined) { visibility: hidden; }
+
+  /* fixed 3D backdrop — sits BELOW the name band */
+  .stage-pin { position: fixed; left:0; right:0; bottom:0; top: var(--band); z-index: 0; pointer-events: none; }
+  .stage-pin { position: fixed; left:0; right:0; bottom: var(--panelH); top: var(--band); z-index: 0; pointer-events: none; }
+  .stage-pin three-d-stage { width: 100%; height: 100%; }
+  :root { --band: 260px; --panelH: 158px; }
+  @media (max-width:900px){ :root{ --band: 200px; --panelH: 150px; } }
+
+  /* top menu */
+  .menu { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex;
+    align-items: center; justify-content: space-between; padding: 22px clamp(20px,4vw,56px);
+    background: var(--paper); }
+  .menu .brand { font-family:'Montserrat',sans-serif; font-weight:900; font-size:20px; letter-spacing:-0.01em; }
+  .menu nav { display:flex; gap: clamp(14px,2.4vw,34px); align-items:center; }
+  .menu nav a { color: var(--ink); text-decoration:none; font-size:14px; font-weight:500; letter-spacing:0.02em; opacity:0.72; position:relative; transition:opacity .2s; }
+  .menu nav a::after { content:''; position:absolute; left:0; right:100%; bottom:-4px; height:2px; background:var(--accent); transition:right .25s; }
+  .menu nav a:hover { opacity:1; } .menu nav a:hover::after { right:0; }
+  .menu .hello { border:1.5px solid var(--ink); border-radius:999px; padding:8px 18px; opacity:1; font-weight:600; }
+  .menu .hello::after { display:none; }
+
+  /* name band — its own section above the scene, never overlapping */
+  .name-block { position: fixed; z-index: 30; left:0; right:0; top:0; height: var(--band);
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding: 78px clamp(20px,5vw,70px) 22px; background: var(--paper);
+    border-bottom:1px solid rgba(43,39,33,0.07); pointer-events:none; transition: opacity .3s; }
+  .name-block h1 { font-family:'Montserrat',sans-serif; font-weight:800; color:var(--ink);
+    font-size: clamp(30px,4.6vw,64px); line-height:0.92; margin:0; letter-spacing:-0.02em; }
+  .name-block .tag { position:absolute; right: clamp(20px,5vw,70px); bottom: 40px; background:var(--navy); color:#fff;
+    font-family:'Space Mono',monospace; font-weight:700; font-size: clamp(13px,1.5vw,22px);
+    letter-spacing:0.14em; text-transform:uppercase; padding:10px 20px; transform: rotate(-4deg); }
+  @media (max-width:900px){ .name-block .tag{ position:static; align-self:flex-start; margin-top:12px; transform:rotate(-3deg);} }
+
+  /* fixed bottom control panel: progress + horizontal capabilities */
+  .panel { position: fixed; z-index: 40; left:0; right:0; bottom:0; min-height: var(--panelH); padding: 16px clamp(16px,4vw,56px) 18px;
+    background: #efe4ce; border-top:1px solid rgba(43,39,33,0.10);
+    opacity:0; transform: translateY(16px); transition: opacity .35s, transform .35s; pointer-events:none; }
+  .panel .prow { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px; }
+  .panel .pct { font-family:'Montserrat',sans-serif; font-weight:800; font-size:24px; }
+  .panel .now { font-size:14px; color:var(--accent); font-weight:600; letter-spacing:0.02em; }
+  .panel .track { height:7px; border-radius:999px; background: rgba(43,39,33,0.12); overflow:hidden; }
+  .panel .fill { height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#e8963f,#b06a2c); transition: width .1s linear; }
+  .caps { display:grid; grid-template-columns: repeat(6, 1fr); gap: clamp(8px,1.4vw,20px); margin-top:16px; }
+  .cap { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px;
+    background:#fff; border:1px solid rgba(43,39,33,0.08);
+    opacity:0; transform: translateY(14px) scale(0.96); transition: opacity .45s, transform .45s; }
+  .cap.on { opacity:1; transform:none; }
+  .cap .num { font-family:'Montserrat',sans-serif; font-weight:800; font-size:12px; width:24px; height:24px; flex:none;
+    display:grid; place-items:center; border-radius:50%; border:1.5px solid var(--muted); color:var(--muted); }
+  .cap.on .num { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .cap .label { font-weight:600; font-size: clamp(11px,1vw,15px); line-height:1.1; }
+  @media (max-width: 720px){
+    .caps{ grid-template-columns: repeat(3,1fr); gap:6px;} .cap{padding:8px;} .cap .label{font-size:10px;} .cap .num{width:20px;height:20px;font-size:10px;}
+    .menu{ padding:16px 18px;} .menu nav{ gap:12px;} .menu nav a{font-size:12px;} .menu .hello{padding:6px 12px;}
+    .name-block h1{ font-size: clamp(28px,8vw,44px);} .panel .now{display:none;}
+    .panel .prow{margin-bottom:6px;} .panel .pct{font-size:20px;}
+  }
+  @media (max-width:460px){ .caps{ grid-template-columns: repeat(2,1fr);} }
+
+  /* spacer: one viewport of pinned hero before the content flows up */
+  .scroll-track { height: 100vh; }
+
+  /* content after the experience */
+  .after { position: relative; z-index: 45; background: var(--paper);
+    box-shadow: 0 -40px 90px rgba(43,39,33,0.14); border-top-left-radius: 34px; border-top-right-radius: 34px; }
+  .section { padding: clamp(60px,9vw,140px) clamp(20px,6vw,90px); }
+  .section .eyebrow { font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:var(--accent); margin:0 0 14px; }
+  .section h2 { font-family:'Montserrat',sans-serif; font-weight:800; font-size: clamp(30px,5vw,62px); margin:0 0 10px; letter-spacing:-0.02em; }
+  .section .sub { color: var(--muted); font-size: clamp(15px,1.4vw,19px); max-width: 48ch; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: clamp(18px,2.4vw,30px); margin-top: clamp(34px,5vw,64px); }
+  .card { background:#fff; border-radius:22px; overflow:hidden; border:1px solid rgba(43,39,33,0.08); transition: transform .3s, box-shadow .3s; }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 24px 50px rgba(43,39,33,0.14); }
+  .card .thumb { aspect-ratio: 16/10; display:grid; place-items:center; position:relative; overflow:hidden; }
+  .card .thumb .mono { font-family:'Space Mono',monospace; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.9); z-index:1; }
+  .card .body { padding: 20px 24px 26px; }
+  .card .tag { font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); }
+  .card h3 { font-family:'Montserrat',sans-serif; font-weight:800; font-size:22px; margin:8px 0 8px; letter-spacing:-0.01em; }
+  .card p { margin:0; color:var(--muted); font-size:14px; }
+  .card .soon { display:inline-block; margin-top:14px; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); border:1px solid rgba(43,39,33,0.15); border-radius:999px; padding:5px 12px; }
+
+  .about h2 { max-width: 18ch; }
+  .about .lead { font-family:'Space Grotesk',sans-serif; font-size: clamp(19px,2.3vw,30px); line-height:1.4; font-weight:500;
+    max-width: 24ch; margin: 22px 0 0; color:var(--ink); text-wrap:pretty; }
+  .about .lead em { font-style:normal; color:var(--accent); font-weight:600; }
+  .about-grid { display:grid; grid-template-columns: repeat(2,1fr); gap: clamp(20px,4vw,60px); margin-top: clamp(34px,5vw,56px);
+    border-top:1px solid rgba(43,39,33,0.12); padding-top: clamp(26px,3vw,40px); }
+  .about-grid p { margin:0; color:var(--muted); font-size: clamp(15px,1.4vw,18px); line-height:1.6; text-wrap:pretty; }
+  .about-grid strong { color:var(--ink); font-weight:600; }
+  @media (max-width:720px){ .about-grid{ grid-template-columns:1fr; gap:18px;} }
+
+  .contact { text-align:center; padding-block: clamp(80px,12vw,180px); }
+  .contact h2 { font-size: clamp(40px,9vw,120px); line-height:0.95; }
+  .contact .email { display:inline-flex; align-items:center; gap:12px; margin-top:26px; text-decoration:none; color:var(--ink); font-size: clamp(18px,2vw,26px); font-weight:600; border-bottom:2px solid var(--accent); padding-bottom:6px; }
+  .contact .socials { display:flex; gap:26px; justify-content:center; margin-top:40px; }
+  .contact .socials a { color:var(--muted); text-decoration:none; font-size:14px; letter-spacing:0.06em; transition:color .2s; }
+  .contact .socials a:hover { color:var(--accent); }
+  .foot { padding:30px; text-align:center; color:var(--muted); font-size:12px; letter-spacing:0.08em; }
+  a { color: var(--accent); } a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+  <header class="menu">
+    <div class="brand">ATK.</div>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+      <a href="#connect" class="hello">Let's connect</a>
+    </nav>
+  </header>
+
+  <div class="stage-pin" id="home">
+    <three-d-stage name="ameer-workshop" background="#f3ead9"></three-d-stage>
+  </div>
+
+  <div class="name-block" id="nameBlock">
+    <h1>Ameer<br>Tamoor Khan</h1>
+    <span class="tag">Jack of All Trade</span>
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="prow"><span class="pct" id="pct">0%</span><span class="now" id="now">Scroll to load capabilities</span></div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="caps" id="caps"></div>
+  </div>
+
+  <div class="scroll-track"></div>
+
+  <main class="after">
+    <section class="section about" id="about">
+      <p class="eyebrow">About</p>
+      <h2>Assistant Professor,<br>University of Copenhagen</h2>
+      <p class="lead">I work at the intersection of <em>AI, computer vision, plant phenotyping, precision agriculture, robotics,</em> and <em>edge-deployable intelligent systems</em> — building robust pipelines that move from datasets and lab validation into real phenotyping facilities, field experiments, and resource-constrained hardware.</p>
+      <div class="about-grid">
+        <p>My research develops deployable AI for crop monitoring, plant growth prediction, disease localization, multi-view 3D plant reconstruction, and automated phenotyping workflows.</p>
+        <p>Current work at UCPH spans AI plant-image analysis, temporal growth modelling, high-throughput 3D reconstruction with 3–6 camera systems in the <strong>PhenoLab</strong> facility, and applied research in the <strong>IBIS project</strong>.</p>
+      </div>
+    </section>
+
+    <section class="section" id="work">
+      <p class="eyebrow">Selected Work</p>
+      <h2>Projects</h2>
+      <p class="sub">A few things I've built across vision, robotics, models and the field.</p>
+      <div class="grid" id="projectGrid"></div>
+    </section>
+
+    <section class="section contact" id="connect">
+      <p class="eyebrow">Have an idea?</p>
+      <h2>Let's connect</h2>
+      <a class="email" href="mailto:drop-in@atkhan.info">drop-in@atkhan.info →</a>
+      <div class="socials">
+        <a href="https://github.com/AmeerTamoorKhan" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://dk.linkedin.com/in/ameer-tamoor-khan-39571076" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://scholar.google.com/citations?user=QWAkVV4AAAAJ&hl=en" target="_blank" rel="noopener">Google Scholar</a>
+        <a href="https://www.instructables.com/member/Ameer%20Tamoor%20Khan/instructables/" target="_blank" rel="noopener">Instructables</a>
+      </div>
+    </section>
+    <div class="foot">© 2026 Ameer Tamoor Khan — built in a workshop.</div>
+  </main>
+
+<script>
+  const CAPS = ['Computer Vision','Language Models','Robotics','Electronics','Microcontrollers','Agronomy'];
+  const PROJECTS = [
+    ['Agri-Tech','Plant Tamagachi','A pet-like companion that keeps your plants alive — sensors + gentle nudges.', ['#3f9b5b','#256b3c']],
+    ['Vision','3Cam 3D','Tri-camera rig reconstructing 3D scenes for inspection and capture.', ['#3d78d8','#22406f']],
+    ['Robotics','HalmTDH','Autonomous field platform for high-throughput crop phenotyping.', ['#c98d64','#8a5a34']],
+    ['Research','Optimization','Numerical optimization methods for large-scale learning problems.', ['#e8963f','#b06a2c']],
+    ['Systems','Edge Models','Compressing and deploying models onto constrained embedded hardware.', ['#5b6470','#2b3038']],
+  ];
+  const caps = document.getElementById('caps');
+  CAPS.forEach((c,i)=>{
+    const el=document.createElement('div'); el.className='cap'; el.id='cap'+i;
+    el.innerHTML=`<span class="num">${i+1}</span><span class="label">${c}</span>`;
+    caps.appendChild(el);
+  });
+  const grid = document.getElementById('projectGrid');
+  PROJECTS.forEach(([tag,title,desc,cols])=>{
+    const el=document.createElement('article'); el.className='card';
+    el.innerHTML=`<div class="thumb" style="background:linear-gradient(135deg,${cols[0]},${cols[1]})">
+        <span class="mono">${title}</span></div>
+      <div class="body"><span class="tag">${tag}</span><h3>${title}</h3><p>${desc}</p>
+      <span class="soon">Case study soon</span></div>`;
+    grid.appendChild(el);
+  });
+</script>
+
+<script src="./three-d-stage.js"></script>
+<script type="module">
+  import { buildScene } from './workshop-scene.js';
+  import { loadCharacter } from './character.js';
+  const stage = document.querySelector('three-d-stage');
+  const { THREE } = await stage.ready;
+  const model = buildScene(THREE);
+  stage.setObject(model);
+
+  const cam = stage._camera, controls = stage._controls;
+  controls.enabled = false;
+  stage._renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2)); // crisp on retina; loop pauses off-hero for perf
+  if (stage.shadowRoot) {
+    const st=document.createElement('style');
+    st.textContent='.toolbar,.note,.err{display:none!important}';
+    stage.shadowRoot.appendChild(st);
+  }
+  // Auto-fit framing: distance is derived from the live aspect so the WHOLE workshop stays in
+  // frame — closer (zoomed in) on wide desktop strips, pulled back on narrow/portrait mobile.
+  function frame(){
+    const A = cam.aspect || (window.innerWidth/window.innerHeight);
+    const V = cam.fov * Math.PI/180, tanV = Math.tan(V/2);
+    const halfW = 2.7, halfH = 1.4;
+    let dist = Math.max(halfH/tanV, halfW/(tanV*Math.max(A,0.35))) + 0.5;
+    dist = Math.max(3.7, dist);
+    cam.position.set(0.4,1.45,dist); controls.target.set(0.4,1.05,0); cam.lookAt(controls.target);
+  }
+  frame();
+
+  const o=n=>model.getObjectByName(n);
+  const swivel=o('chair_swivel');
+
+  // ---- load the rigged, animated GLB character and place it where the built one stood ----
+  const { root: me, mixer, actions, bones } = await loadCharacter(THREE, './objects/atk_char_3d.glb');
+  me.position.set(-0.95,0,0.85); me.rotation.y=Math.PI; model.add(me);
+  // Freeze the seated clip on its stable first frame: left to loop it drifts the lower body into
+  // a crouch that clips through the chair. The typing arm motion is supplied by applyTyping().
+  actions.sit.paused = true; actions.sit.time = 0;
+  // Capture the frozen seated pose as an ABSOLUTE baseline for the typing override, so the
+  // override sets rotations rather than accumulating them each frame (which contorted the body).
+  const SEAT_BONES=['Spine02','R_Upperarm','R_Forearm','L_Upperarm','L_Forearm','R_Hand','L_Hand'];
+  const seatBase={};
+  { const wsave={}; for(const n in actions){ wsave[n]=actions[n].getEffectiveWeight(); actions[n].setEffectiveWeight(n==='sit'?1:0); }
+    mixer.update(0);
+    SEAT_BONES.forEach(n=>{ if(bones[n]) seatBase[n]=bones[n].rotation.clone(); });
+    for(const n in actions){ actions[n].setEffectiveWeight(wsave[n]); }
+    mixer.update(0);
+  }
+
+  const CX=-0.95,CZ=0.85, seatPos=[CX,0,CZ], standPos=[CX+0.15,0,CZ-0.16], potPos=[2.0,0,0.78];
+  const walkRy=Math.atan2(potPos[0]-standPos[0], potPos[2]-standPos[2]);
+  const clamp=(t,a=0,b=1)=>Math.max(a,Math.min(b,t));
+  const ease=t=>{t=clamp(t);return t*t*(3-2*t);};
+  const lerp=(a,b,t)=>a+(b-a)*t, lerp3=(A,B,t)=>[lerp(A[0],B[0],t),lerp(A[1],B[1],t),lerp(A[2],B[2],t)];
+  const lerpAngle=(a,b,t)=>{ let d=((b-a+Math.PI)%(2*Math.PI))-Math.PI; return a+d*t; };
+
+  // crossfade the three baked clips (sit / walk / idle) toward per-phase target weights
+  const wTarget={sit:0,walk:0,idle:1};
+  function setWeights(dt){
+    const k=Math.min(1,dt*8);
+    for(const name in actions){ const a=actions[name];
+      a.setEffectiveWeight(a.getEffectiveWeight() + (wTarget[name]-a.getEffectiveWeight())*k); }
+  }
+
+  let curP=0,tgtP=0, charDir=1, charMoving=false, moveHold=0;
+  // phases: seated + typing at the desk (p<0.12) -> walk to the plant (0.12..0.85) -> idle at plant (>0.85)
+  // In the walk band the character only *walks* while progress is actually changing; when the
+  // user stops scrolling he STANDS in place (idle) facing his travel direction — never marching on
+  // the spot. Scrolling backward flips charDir so he physically turns around and walks back.
+  function applyPose(p){
+    let pos, ry;
+    if(p<0.12){
+      wTarget.sit=1; wTarget.walk=0; wTarget.idle=0;
+      pos=seatPos; ry=Math.PI;                      // seated, facing the monitor (-Z)
+    } else if(p<0.85){
+      const w=(p-0.12)/0.73;
+      pos=lerp3(standPos,potPos,ease(w));            // position along the desk->plant path
+      if(charMoving){ wTarget.sit=0; wTarget.walk=1; wTarget.idle=0; }   // stride only while moving
+      else          { wTarget.sit=0; wTarget.walk=0; wTarget.idle=1; }   // otherwise stand still
+      ry = charDir>=0 ? walkRy : walkRy+Math.PI;     // face the direction of travel (turn to reverse)
+    } else {
+      const u=ease((p-0.85)/0.15);
+      wTarget.sit=0; wTarget.walk=0; wTarget.idle=1;
+      pos=potPos; ry=lerpAngle(walkRy,0,u);          // arrive, turn to face the viewer
+    }
+    me.position.set(pos[0],0,pos[2]);
+    me.rotation.y = lerpAngle(me.rotation.y, ry, 0.16);
+    swivel.rotation.y = -1.05*ease(clamp((p-0.02)/0.10));
+  }
+
+  // Typing override: the baked "sit" clip rests the hands on the thighs; each frame (after the
+  // mixer writes the clip) we additively fold the arms forward over the keyboard with a subtle
+  // alternating keystroke bob. Scaled by the sit weight so it fades out cleanly as he stands.
+  function applyTyping(){
+    const w = actions.sit.getEffectiveWeight();
+    if(w<0.02) return;
+    const b=bones, t=performance.now()*0.001;
+    const k1=Math.sin(t*7.2), k2=Math.sin(t*7.2+1.9);
+    const set=(n,dx,dy,dz)=>{ const s=seatBase[n]; if(s&&b[n]) b[n].rotation.set(s.x+dx*w, s.y+dy*w, s.z+dz*w); };
+    set('Spine02',   0.12, 0, 0);
+    set('R_Upperarm', 0,  0.80, 0);
+    set('R_Forearm',  1.05+0.05*k1, 0, 0);
+    set('L_Upperarm', 0, -0.80, 0);
+    set('L_Forearm', -(1.05+0.05*k2), 0, 0);
+    set('R_Hand',  0.12+0.12*Math.max(0,k1), 0, 0);
+    set('L_Hand', -(0.12+0.12*Math.max(0,k2)), 0, 0);
+  }
+  me.rotation.y=Math.PI; applyPose(0);
+
+  // ---------- ambient animations (music note, robot arm, lamp flicker) ----------
+  // floating music notes from the speaker
+  const noteTex = (() => {
+    const cv=document.createElement('canvas'); cv.width=cv.height=128;
+    const c=cv.getContext('2d'); c.fillStyle='#2b2721'; c.font='96px serif'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('\u266A',64,64);
+    const t=new THREE.CanvasTexture(cv); return t;
+  })();
+  const speaker = o('speaker_body');
+  const notes = [];
+  for(let i=0;i<3;i++){
+    const m=new THREE.SpriteMaterial({map:noteTex, transparent:true, depthWrite:false});
+    const s=new THREE.Sprite(m); s.name='music_note_'+i; s.scale.set(0.11,0.11,0.11);
+    s.userData.phase=i/3; model.add(s); notes.push(s);
+  }
+  const spBase=[speaker.position.x, speaker.position.y+0.05, speaker.position.z+0.07];
+
+  // robot arm: base + post stay FIXED; only the upper arm pivots from joint_1
+  const armPivot=new THREE.Group(); armPivot.name='arm_pivot';
+  const j1=o('arm_joint_1'); armPivot.position.copy(j1.position); model.add(armPivot);
+  ['arm_joint_1','arm_segment_1','arm_joint_2','arm_segment_2','arm_joint_3','arm_finger_1','arm_finger_2']
+    .forEach(n=>{ const p=o(n); if(p) armPivot.attach(p); });
+  const armRest={ x:armPivot.rotation.x, z:armPivot.rotation.z };
+
+  // enlarge the pegboard tools (not the drone) a touch, scaling about each board's centre
+  // so they grow in place and stay within the board bounds.
+  function scaleTools(cx,cy,cz,scale,prefixes){
+    const grp=new THREE.Group(); grp.position.set(cx,cy,cz); model.add(grp);
+    model.children.filter(ch=>ch!==grp && ch.name && prefixes.some(p=>ch.name.startsWith(p)))
+      .forEach(t=>grp.attach(t));
+    grp.scale.setScalar(scale);
+  }
+  scaleTools(0.15,1.22,-0.42,1.12,['wrench_1','wrench_2','screwdriver_','pliers_']);
+  scaleTools(1.65,1.17,-0.42,1.1,['multimeter_','r_pliers_','scissors_','tweezers_']);
+  // spool racks sit near the right edge — keep original size and pull them inward
+  model.children.filter(ch=>ch.name && ch.name.startsWith('spool_')).forEach(t=>{ t.position.x-=0.12; });
+  // nudge the drone down a little on its pegboard
+  model.children.filter(ch=>ch.name && ch.name.startsWith('drone_')).forEach(t=>{ t.position.y-=0.07; });
+
+  // monitor code screen — lines scroll upward, but ONLY while he's seated
+  const scr=o('monitor_screen');
+  const codeCv=document.createElement('canvas'); codeCv.width=512; codeCv.height=300;
+  const cctx=codeCv.getContext('2d');
+  const codeTex=new THREE.CanvasTexture(codeCv);
+  scr.material=new THREE.MeshStandardMaterial({ map:codeTex, roughness:0.3, emissive:0x11141f, emissiveIntensity:0.55 });
+  let codeScroll=0;
+  const codeCols=['#6ad08a','#dfe3ea','#e8b64a','#69a7e0','#c98bd6','#dfe3ea','#e07a6a'];
+  function drawCode(){
+    cctx.fillStyle='#0d1020'; cctx.fillRect(0,0,512,300);
+    const lh=22, N=Math.ceil(300/lh)+2;
+    for(let k=0;k<N;k++){
+      const i=Math.floor(codeScroll/lh)+k;
+      const y=k*lh - (codeScroll%lh) - lh;
+      const indent=10+((i*7)%3)*20;
+      const w=46+((i*37)%5)*52;
+      cctx.fillStyle=codeCols[((i%codeCols.length)+codeCols.length)%codeCols.length];
+      cctx.fillRect(indent, y, Math.min(w,512-indent-14), 8);
+      if((i*13)%2===0){ cctx.fillStyle='#3a4560'; cctx.fillRect(indent+w+8, y, 28, 8); }
+    }
+    codeTex.needsUpdate=true;
+  }
+  drawCode();
+
+  // lamp flicker materials
+  const flickerMats=[];
+  model.traverse(n=>{ if(n.material && ['lamp_light','lamp_light_pool'].includes(n.material.name)){
+    n.material.userData.baseE=n.material.emissiveIntensity; n.material.userData.baseO=n.material.opacity; flickerMats.push(n.material);
+  }});
+
+  function ambient(time){
+    const t=time*0.001;
+    // notes rise, drift and fade, then respawn
+    notes.forEach(s=>{
+      let p=(t*0.35 + s.userData.phase)%1;
+      s.position.set(spBase[0]+Math.sin(p*6.28+s.userData.phase*6)*0.06, spBase[1]+p*0.5, spBase[2]+p*0.04);
+      s.material.opacity=Math.sin(p*Math.PI)*0.9;
+      s.scale.setScalar(0.14+p*0.1);
+    });
+    // arm rigid up/down nod + slight sway (kinematic pivot, stays intact)
+    armPivot.rotation.x=armRest.x+Math.sin(t*1.1)*0.16;
+    armPivot.rotation.z=armRest.z+Math.sin(t*0.7)*0.10;
+    // code lines scroll upward while he is seated at the desk
+    if(curP<0.12){ codeScroll+=1.1; drawCode(); }
+    // lamp flicker (stronger, more visible)
+    const f=0.55+0.45*Math.abs(Math.sin(t*8.5))+ (Math.random()<0.08?-0.5:0);
+    flickerMats.forEach(m=>{ m.emissiveIntensity=m.userData.baseE*3.4*Math.max(0.25,f); m.opacity=Math.min(0.95,m.userData.baseO*1.9*Math.max(0.35,f)); });
+  }
+
+  const nameBlock=document.getElementById('nameBlock'), panel=document.getElementById('panel'),
+    pct=document.getElementById('pct'), now=document.getElementById('now'), fill=document.getElementById('fill'),
+    afterEl=document.querySelector('.after');
+  const capEls=CAPS.map((_,i)=>document.getElementById('cap'+i));
+  function updateHUD(p, hideForContent){
+    const showPanel = p>0.01 && !hideForContent;
+    panel.style.opacity = showPanel?1:0;
+    panel.style.transform = showPanel?'none':'translateY(16px)';
+    nameBlock.style.opacity = hideForContent?0:1;
+    const percent=Math.round(p*100);
+    pct.textContent=percent+'%'; fill.style.width=percent+'%';
+    let unlocked=0;
+    capEls.forEach((el,i)=>{ const on=p>=(i+0.5)/CAPS.length*0.92; el.classList.toggle('on',on); if(on)unlocked=i+1; });
+    now.textContent = unlocked? CAPS[unlocked-1]+' loaded' : 'Scroll to load capabilities';
+  }
+
+  // ---------- paced input: hijack wheel/touch so motion advances at a FIXED rate ----------
+  // regardless of how fast/hard the user scrolls, the experience steps forward evenly.
+  // Pace input by TIME (not by counting events): accept one small step at most every
+  // THROTTLE ms. Deliberate scrolls are always spaced further apart than that, so none are
+  // ever ignored; a trackpad momentum flood is simply paced instead of stacking to the end.
+  let mode='intro', vp=0, lastStep=0;
+  const STEP=0.022, THROTTLE=55;
+  function setMode(m){ mode=m; document.documentElement.style.overflow = document.body.style.overflow = (m==='intro'?'hidden':''); }
+  setMode('intro');
+  function feed(dir){
+    const now=performance.now();
+    if(now-lastStep<THROTTLE) return;
+    lastStep=now;
+    if(mode==='intro'){
+      vp=clamp(vp + dir*STEP); tgtP=vp;
+      // release happens in the loop once vp is 100% AND the walk has settled
+    } else if(window.scrollY<=0 && dir<0){
+      // re-enter the pinned experience to reverse; step just below 100% so the loop
+      // doesn't instantly re-release, and the walk-back begins on this very scroll
+      setMode('intro'); vp=clamp(1-STEP); tgtP=vp;
+    }
+  }
+  window.addEventListener('wheel', e=>{ if(mode==='intro') e.preventDefault(); if(e.deltaY) feed(Math.sign(e.deltaY)); }, {passive:false});
+  let ty=0;
+  window.addEventListener('touchstart', e=>{ ty=e.touches[0].clientY; }, {passive:true});
+  window.addEventListener('touchmove', e=>{
+    const y=e.touches[0].clientY, dy=ty-y;
+    if(mode==='intro') e.preventDefault();
+    if(Math.abs(dy)>5){ feed(Math.sign(dy)); ty=y; }
+  }, {passive:false});
+  window.addEventListener('resize', ()=>{ frame(); });
+
+  const R=stage._renderer;
+  window.__applyPose=applyPose; window.__updateHUD=p=>updateHUD(p,false);
+  const MAX_STEP=0.006; // fixed max progress change per frame — pace stays constant no matter how fast you scroll
+  const pin=document.querySelector('.stage-pin');
+
+  function loop(){
+    const _t=performance.now(); const dt=Math.min(0.05,(_t-(loop._last||_t))/1000); loop._last=_t;
+    let d=tgtP-curP;
+    const step=Math.sign(d)*Math.min(Math.abs(d)*0.2, MAX_STEP);
+    curP += step;
+    if(Math.abs(tgtP-curP)<0.014) curP=tgtP;   // collapse the easing tail so he stops promptly
+    curP=clamp(curP);
+    // walk ONLY while genuinely translating this frame; the moment progress settles he stands
+    // (no marching on the spot). Tiny hold smooths steady scrolling without a phantom tail.
+    if(Math.abs(step)>0.0015){ moveHold=0.04; charDir = step>0 ? 1 : -1; }
+    else moveHold=Math.max(0, moveHold-dt);
+    charMoving = moveHold>0;
+    // release to normal scrolling only when the bar is at 100% AND the walk has settled
+    if(mode==='intro' && vp>=0.9999 && curP>=0.999){ setMode('released'); }
+    const intoContent = mode==='released' && window.scrollY>40;
+    applyPose(curP); updateHUD(curP, intoContent); frame();
+    ambient(performance.now());
+    setWeights(dt); mixer.update(dt); applyTyping();
+    R.render(stage._scene, cam);
+  }
+
+  // Fully mount/unmount the 3D scene instead of letting content scroll over a live canvas —
+  // removes the section-to-section bleed-through and stops all GPU work while reading.
+  let active=true;
+  function setStageActive(on){
+    if(on===active) return; active=on;
+    pin.style.display = on?'block':'none';
+    if(!on){ panel.style.opacity=0; panel.style.transform='translateY(16px)'; nameBlock.style.opacity=0; }
+    R.setAnimationLoop(on?loop:null);
+  }
+  R.setAnimationLoop(loop);
+  let ticking=false;
+  window.addEventListener('scroll', ()=>{
+    if(ticking) return; ticking=true;
+    requestAnimationFrame(()=>{
+      ticking=false;
+      setStageActive(mode==='intro' || window.scrollY < window.innerHeight*0.6);
+    });
+  }, {passive:true});
+</script>
+</body>
+</html>
